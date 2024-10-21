@@ -7,13 +7,13 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 1. Install dependencies
 
    ```bash
-   npm install
+   yarn
    ```
 
 2. Start the app
 
    ```bash
-    npx expo start
+    yarn start
    ```
 
 In the output, you'll find options to open the app in a
@@ -22,4 +22,4 @@ In the output, you'll find options to open the app in a
 - [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 
-### This tutorial uses native code, so you'll need to create a development build to test it.
+### This testing project uses native code, so you'll need to create a development build to test it.
