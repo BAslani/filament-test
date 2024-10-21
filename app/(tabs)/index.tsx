@@ -1,70 +1,85 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React from 'react'
+import {
+  FilamentScene,
+  FilamentView,
+  DefaultLight,
+  Model,
+  Camera,
+  useCameraManipulator,
+} from 'react-native-filament'
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler'
+import { Dimensions, StyleSheet, View } from 'react-native'
+import { useSharedValue } from 'react-native-worklets-core'
+import Geralt from '@/assets/Geralt.glb'
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-
-export default function HomeScreen() {
+export default function Home() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    <GestureHandlerRootView>
+      <FilamentScene>
+        <Render />
+      </FilamentScene>
+    </GestureHandlerRootView>
+  )
 }
 
+function Render() {
+  const viewHeight = Dimensions.get('window').height
+
+  const cameraManipulator = useCameraManipulator({
+    orbitHomePosition: [0, 0, 8], // camera starting position
+    targetPosition: [0, 0, 0], // Where the camera looks
+    orbitSpeed: [0.003, 0.003], // Speed of orbiting movement
+  })
+
+  const panGesture = Gesture.Pan()
+    .onBegin((event) => {
+      const yCorrected = viewHeight - event.translationY
+      cameraManipulator?.grabBegin(event.translationX, yCorrected, false) // false means rotation
+    })
+    .onUpdate((event) => {
+      const yCorrected = viewHeight - event.translationY
+      cameraManipulator?.grabUpdate(event.translationX, yCorrected)
+    })
+    .maxPointers(1)
+    .onEnd(() => {
+      cameraManipulator?.grabEnd()
+    })
+
+  const previousScale = useSharedValue(1)
+  const scaleMultiplier = 100
+  const pinchGesture = Gesture.Pinch()
+    .onBegin(({ scale }) => {
+      previousScale.value = scale
+    })
+    .onUpdate(({ scale, focalX, focalY }) => {
+      const delta = scale - previousScale.value
+      cameraManipulator?.scroll(focalX, focalY, -delta * scaleMultiplier)
+      previousScale.value = scale
+    })
+
+  // Combine pinch and pan gestures
+  const combinedGesture = Gesture.Race(pinchGesture, panGesture)
+
+  return (
+    <View style={styles.container}>
+      <GestureDetector gesture={combinedGesture}>
+        <FilamentView style={styles.container}>
+          <Camera cameraManipulator={cameraManipulator} />
+          <DefaultLight />
+          <Model source={Geralt} transformToUnitCube />
+        </FilamentView>
+      </GestureDetector>
+    </View>
+  )
+}
+
+// Styling for the container
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+})
